@@ -8,6 +8,15 @@ app.use(bodyParser.json());
 
 var port = process.env.PORT || 8080;
 
+var sql = require('mssql');
+ 
+var config = {
+    user: 'SioPlatformUsr',
+    password: 'S10Pl@tf0rm',
+    server: '192.168.120.10',
+    database: 'ITG-Sio'
+}
+
 //Mongoose
 var mongoose = require("mongoose");
 mongoose.connect("mongodb://localhost:27017/tracking");//Si no existe la base en Mongo la crea 
@@ -105,6 +114,40 @@ router.route("/vesselConfiguration")
 		vesselConfiguration.find(function(err, config){
 			if(err) res.send(err);
 			res.json(config);
+		});
+	});
+
+//GET all alarms of a vessel
+router.route("/alarmsLog/:vesselId")
+	.get(function(req, res){
+		var connection = new sql.Connection(config, function(err) {
+		    if (err) return console.log(err)
+
+		 	var vesselId = req.params.vesselId;
+		    var request = new sql.Request(connection);
+		    request.query("SELECT TOP 100 [vesselid], [vesselname], [TimeString],[Latitude],[LatitudeNS],[Longitude],[LongitudeEW],[Speed] FROM [ITG-Sio].[dbo].[2150-DAQOnBoardGps] where vesselid = "+vesselId+" and Speed > 9 and TimeString LIKE (CONVERT(nvarchar(16), CONVERT(date, GETDATE()), 112) + '%')", function(err, recordset) {
+		        if (err) return console.log(err)
+		        var data = {};
+		    	data.vesselid = vesselId;
+		    	data.alarms = [];
+		        if (recordset.length > 0){
+		        	recordset.forEach(function(elem, index){
+		        		data.alarms.push({
+		        			id: index,
+		        			message: "Supera velocidad máxima con: " + elem.Speed + ", en " + elem.Latitude + " " + elem.LatitudeNS + ", " + elem.Longitude + " " + elem.LongitudeEW,
+		        			date: elem.TimeString.substring(0, 4) + "-" + elem.TimeString.substring(4, 6) + "-" + elem.TimeString.substring(6, 8) + " " + elem.TimeString.substring(8, 10) + ":" + elem.TimeString.substring(10, 12)
+						});
+		        	});
+		        }
+		        else{
+		        	data.alarms.push({message: "empty"});
+		        }
+		        res.json(data);
+		    });
+		});
+		 
+		connection.on('error', function(err) {
+		    console.log(err);
 		});
 	});
 
