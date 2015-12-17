@@ -117,6 +117,50 @@ router.route("/vesselConfiguration")
 		});
 	});
 
+//GET operational state
+router.route("/operationalState/:vesselId/:dateId")
+	.get(function(req, res){
+		var connection = new sql.Connection(config, function(err) {
+		    if (err) return console.log(err)
+
+		 	var vesselId = req.params.vesselId;
+		 	var dateId = req.params.dateId;
+		    var request = new sql.Request(connection);
+		    request.query("SELECT [vesselid],[vesselname], [Component], [State0],[State1],[State2],[State3],[State4],[State5],[Chk01],[Chk02],[Chk03] FROM [ITG-Sio].[dbo].[3100-ETLVesselsOpState] where TimeString = '"+dateId+"' and vesselid = "+vesselId, function(err, recordset) {
+		        if (err) return console.log(err)
+		        var data = {};
+		    	data.vesselid = vesselId;
+		    	data.state = {};
+		        if (recordset.length > 0){
+		        	recordset.forEach(function(elem, index){
+		        		var state;
+		        		var engine;
+		        		if(elem.State1 == 1) state = "OffState";
+		        		else if(elem.State2 == 1) state = "StandByState";
+		        		else if(elem.State3 == 1) state = "NavigationState";
+		        		else if(elem.State4 == 1) state = "OperationState";
+		        		else state = "UnkownState";
+		        		if (elem.Component == "ENG_PS"){ 
+		        			data.state.port = state;
+		        		}
+		        		else {
+		        			data.state.starboard = state;
+		        		}
+		        	});
+		        }
+		        else{
+		        	data.state.message = "empty";
+		        }
+		        res.json(data);
+		    });
+		});
+		 
+		connection.on('error', function(err) {
+		    console.log(err);
+		});
+	});
+
+
 //GET all alarms of a vessel
 router.route("/alarmsLog/:vesselId")
 	.get(function(req, res){
@@ -125,7 +169,7 @@ router.route("/alarmsLog/:vesselId")
 
 		 	var vesselId = req.params.vesselId;
 		    var request = new sql.Request(connection);
-		    request.query("SELECT TOP 100 [vesselid], [vesselname], [TimeString],[Latitude],[LatitudeNS],[Longitude],[LongitudeEW],[Speed] FROM [ITG-Sio].[dbo].[2150-DAQOnBoardGps] where vesselid = "+vesselId+" and Speed > 9 and TimeString LIKE (CONVERT(nvarchar(16), CONVERT(date, GETDATE()), 112) + '%')", function(err, recordset) {
+		    request.query("SELECT TOP 1000 [vesselid], [vesselname], [TimeString],[Latitude],[LatitudeNS],[Longitude],[LongitudeEW],[Speed] FROM [ITG-Sio].[dbo].[2150-DAQOnBoardGps] where vesselid = "+vesselId+" and Speed > 9 and TimeString LIKE (CONVERT(nvarchar(16), CONVERT(date, GETDATE()), 112) + '%')", function(err, recordset) {
 		        if (err) return console.log(err)
 		        var data = {};
 		    	data.vesselid = vesselId;
