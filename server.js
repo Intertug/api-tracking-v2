@@ -13,7 +13,7 @@ var sql = require('mssql');
 var config = {
     user: 'SioPlatformUsr',
     password: 'S10Pl@tf0rm',
-    server: '192.168.120.10',
+    server: '190.242.119.122',
     database: 'ITG-Sio'
 }
 
@@ -160,6 +160,37 @@ router.route("/operationalState/:vesselId/:dateId")
 		});
 	});
 
+//GET fuel usage of vessel by month
+router.route("/fuelUsage/:vesselId/:date")
+	.get(function(req, res){
+		var connection = new sql.Connection(config, function(err) {
+		    if (err) return console.log(err)
+
+		 	var vesselId = req.params.vesselId;
+		 	var date = req.params.date;
+		    var request = new sql.Request(connection);
+		    request.query("SELECT [DataCode], [DataValue] FROM [ITG-Sio].[dbo].[2160-DAQOnBoardData] where vesselid = "+vesselId+" and TimeString like (convert(nvarchar(4), year(getdate())) + convert(nvarchar(2),month(getdate())) + '%')", function(err, recordset) {
+		        if (err) return console.log(err)
+		        var data = {};
+		    	data.vesselid = vesselId;
+		    	data.data = [];
+		        if (recordset.length > 0){
+		        	recordset.forEach(function(elem, index){
+		        		var prp000, prp001, prp002, prs000, prs001, prs002, bow001, bow002, gep001, gep002, ges001, ges002;
+
+		        	});
+		        }
+		        else{
+		        	data.alarms.push({message: "empty"});
+		        }
+		        res.json(data);
+		    });
+		});
+		 
+		connection.on('error', function(err) {
+		    console.log(err);
+		});
+	});
 
 //GET all alarms of a vessel
 router.route("/alarmsLog/:vesselId")
@@ -173,6 +204,7 @@ router.route("/alarmsLog/:vesselId")
 		        if (err) return console.log(err)
 		        var data = {};
 		    	data.vesselid = vesselId;
+		    	data.count = recordset.length;
 		    	data.alarms = [];
 		        if (recordset.length > 0){
 		        	recordset.forEach(function(elem, index){
