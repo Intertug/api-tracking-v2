@@ -11,10 +11,10 @@ var port = process.env.PORT || 8080;
 var sql = require('mssql');
  
 var config = {
-    user: 'SioPlatformUsr',
-    password: 'S10Pl@tf0rm',
-    server: '190.242.119.122',
-    database: 'ITG-Sio',
+    user: '#',
+    password: '#',
+    server: '#',
+    database: '#',
     connectionTimeout: 480000,
     requestTimeout: 480000
 }
